@@ -387,7 +387,7 @@ public class BridgeService extends Service implements WatchChannel.WatchMessageL
             asr.setRecognitionListener(new RecognitionListener() {
                 @Override public void onReadyForSpeech(Bundle b) {}
                 @Override public void onBeginningOfSpeech() {}
-                @Override public void onRmsChanged(double v) {}
+                @Override public void onRmsChanged(float v) {}
                 @Override public void onBufferReceived(byte[] buf) {}
                 @Override public void onEndOfSpeech() {}
                 @Override public void onEvent(int event, Bundle b) {}
@@ -438,7 +438,7 @@ public class BridgeService extends Service implements WatchChannel.WatchMessageL
             case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
                 msg = "未获取到语音，请重试"; break;
             case SpeechRecognizer.ERROR_NETWORK:
-            case SpeechRecognizer.ERROR_NETWORK_SPEECH_TIMEOUT:
+            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
                 msg = "语音识别网络不可用"; break;
             case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
                 msg = "语音识别忙，请稍候"; break;

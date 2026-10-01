@@ -7,3 +7,9 @@ watch-app/node_modules/
 # 系统
 .DS_Store
 *.log
+
+# 安卓构建产物
+phone-bridge/.gradle/
+phone-bridge/app/build/
+phone-bridge/**/build/
+*.apk

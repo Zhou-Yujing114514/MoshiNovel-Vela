@@ -1,0 +1,162 @@
+<template>
+  <div class="page">
+    <div class="title-bar">
+      <text class="title">摩柿小说</text>
+    </div>
+    <div class="card-list">
+      <div class="card" tid="tid" for="{{cards}}" @click="onCardClick($item)">
+        <text class="card-title">{{$item.title}}</text>
+        <text class="card-sub">{{$item.subtitle}}</text>
+      </div>
+    </div>
+    <div class="bridge-bar">
+      <text class="bridge-status">手机桥接：{{bridgeText}}</text>
+    </div>
+  </div>
+</template>
+
+<style>
+  .page {
+    flex-direction: column;
+    padding: 24px;
+    background-color: #000000;
+  }
+  .title-bar {
+    justify-content: center;
+    margin: 16px 0 24px 0;
+  }
+  .title {
+    font-size: 44px;
+    color: #ffffff;
+  }
+  .card-list {
+    flex: 1;
+    flex-direction: column;
+  }
+  .card {
+    flex-direction: column;
+    background-color: #1a1a1a;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .card-title {
+    font-size: 38px;
+    color: #ffffff;
+  }
+  .card-sub {
+    font-size: 28px;
+    color: #9aa4b8;
+    margin-top: 10px;
+  }
+  .bridge-bar {
+    justify-content: center;
+    margin-top: 12px;
+    margin-bottom: 8px;
+  }
+  .bridge-status {
+    font-size: 26px;
+    color: #9aa4b8;
+  }
+</style>
+
+<script>
+  import router from '@system.router'
+  import prompt from '@system.prompt'
+  import api from '../common/api.js'
+  import store from '../common/store.js'
+  import bridge from '../common/bridge.js'
+
+  export default {
+    private: {
+      bridgeState: 'disconnected',
+      bridgeText: '未连接',
+      moshiStatus: '未登录',
+      cards: []
+    },
+    onInit() {
+      const self = this
+      self.buildCards()
+      self._onBridgeState = function (st) {
+        if (!self.$valid) return
+        self.applyBridgeState(st)
+      }
+      bridge.onStateChange(self._onBridgeState)
+      self.applyBridgeState(bridge.getState())
+      self.refreshLogin()
+      // 启动轻探活：打开 App 即发一次 fetch，让 AstroBox 网桥/原生 fetch 通路立即被识别
+      api.lightProbe().then(function (ok) {
+        if (!self.$valid) return
+        if (ok && self.bridgeState !== 'connected') {
+          self.bridgeText = '网络已连通'
+        }
+      })
+    },
+    onShow() {
+      // onShow 会多次触发（息屏重亮等），这里只做幂等读取，不发起网络请求
+      this.applyBridgeState(bridge.getState())
+      this.refreshLogin()
+    },
+    applyBridgeState(st) {
+      this.bridgeState = st || 'disconnected'
+      if (this.bridgeState === 'connected') {
+        this.bridgeText = '已连接'
+      } else if (this.bridgeState === 'connecting') {
+        this.bridgeText = '连接中'
+      } else {
+        this.bridgeText = '未连接'
+      }
+    },
+    fmtLogin(s, acc) {
+      if (s && String(s).length > 0) {
+        if (acc && acc.username) {
+          return acc.username
+        }
+        return '已登录'
+      }
+      return '未登录'
+    },
+    refreshLogin() {
+      const self = this
+      store.getSession('moshi').then(function (s) {
+        return store.getAccount('moshi').then(function (acc) {
+          self.moshiStatus = self.fmtLogin(s, acc)
+          self.buildCards()
+        })
+      })
+    },
+    buildCards() {
+      this.cards = [
+        {
+          tid: 'moshi',
+          title: api.SERVICES.moshi.label,
+          subtitle: this.moshiStatus,
+          target: 'Login',
+          svc: 'moshi',
+          needBridge: true
+        },
+        {
+          tid: 'library',
+          title: '本地书库',
+          subtitle: '离线已下载书籍',
+          target: 'Library',
+          svc: '',
+          needBridge: false
+        }
+      ]
+    },
+    onCardClick(item) {
+      if (!item) return
+      // §10.5 降级：联网类卡片在桥接未连接时只 toast，不发起请求
+      if (item.needBridge && this.bridgeState !== 'connected') {
+        prompt.showToast({ message: '未连接手机桥接', duration: 1500 })
+        return
+      }
+      if (item.target === 'Login') {
+        router.push({ uri: 'Login', params: { svc: item.svc } })
+      } else if (item.target === 'Library') {
+        router.push({ uri: 'Library' })
+      }
+    }
+  }
+</script>

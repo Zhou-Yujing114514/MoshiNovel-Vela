@@ -1,0 +1,5 @@
+// 顶层构建脚本：仅声明 Android Gradle 插件版本，不配置业务。
+// 环境要求：JDK 17、Android SDK Platform 34、Gradle 8.5+（见 README「构建 APK」）。
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}

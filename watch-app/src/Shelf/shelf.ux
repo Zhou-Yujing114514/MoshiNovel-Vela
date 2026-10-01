@@ -1,0 +1,347 @@
+<template>
+  <div class="page">
+    <div class="topbar">
+      <text class="topbar-title">{{svcLabel}}·书架</text>
+      <input class="logout-btn" type="button" value="退出登录" onclick="onLogout" />
+    </div>
+
+    <text class="loading" show="{{loading}}">加载中…</text>
+    <text class="empty" show="{{!loading && list.length === 0}}">书架为空</text>
+
+    <list class="shelf-list" show="{{!loading && list.length > 0}}">
+      <list-item class="shelf-item" type="item" tid="item" for="{{list}}">
+        <div class="item-row">
+          <div class="item-left" onclick="onItemClick($item)">
+            <text class="item-title" >{{$item.title}}</text>
+            <text class="item-author" >{{$item.author}}</text>
+          </div>
+          <div class="item-right">
+            <text class="item-status"  onclick="onItemClick($item)">{{$item.statusText}}</text>
+            <progress class="item-progress" percent="{{$item.progress}}" show="{{$item.downloading}}"></progress>
+            <input class="del-btn" type="button" value="{{$item.delText}}" onclick="onDelClick($item)" disabled="{{!$item.downloaded}}" />
+          </div>
+        </div>
+      </list-item>
+    </list>
+  </div>
+</template>
+
+<style>
+  .page {
+    flex-direction: column;
+    background-color: #000000;
+    flex: 1;
+  }
+  .topbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    height: 76px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .topbar-title {
+    font-size: 40px;
+    color: #ffffff;
+  }
+  .logout-btn {
+    font-size: 26px;
+    color: #ff9c9c;
+    background-color: #1a1a1a;
+    border-radius: 10px;
+    height: 54px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .loading {
+    font-size: 30px;
+    color: #aaaaaa;
+    margin-top: 80px;
+  }
+  .empty {
+    font-size: 30px;
+    color: #aaaaaa;
+    margin-top: 120px;
+  }
+  .shelf-list {
+    flex: 1;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .shelf-item {
+    margin-bottom: 10px;
+  }
+  .item-row {
+    flex-direction: row;
+    align-items: center;
+    background-color: #1c1c1c;
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .item-left {
+    flex: 1;
+    flex-direction: column;
+  }
+  .item-title {
+    font-size: 34px;
+    color: #ffffff;
+  }
+  .item-author {
+    font-size: 28px;
+    color: #9aa0aa;
+    margin-top: 8px;
+  }
+  .item-right {
+    flex-direction: column;
+    align-items: flex-end;
+    width: 170px;
+  }
+  .item-status {
+    font-size: 28px;
+    color: #33b4ff;
+  }
+  .item-progress {
+    width: 130px;
+    height: 12px;
+    margin-top: 6px;
+  }
+  .del-btn {
+    font-size: 26px;
+    color: #ff9c9c;
+    background-color: #2a1f1f;
+    border-radius: 10px;
+    height: 52px;
+    margin-top: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+</style>
+
+<script>
+  import router from '@system.router';
+  import prompt from '@system.prompt';
+  import file from '@system.file';
+  import api from '../common/api.js';
+  import store from '../common/store.js';
+
+  export default {
+    public: {
+      svc: ''
+    },
+    private: {
+      svcLabel: '',
+      list: [],
+      loading: true,
+      confirmDelKey: '',
+      _delTimer: null
+    },
+    onInit() {
+      const svc = this.svc || '';
+      const conf = api.SERVICES && api.SERVICES[svc];
+      this.svcLabel = conf ? (conf.label || '') : '';
+      const self = this;
+      api.onDownloadProgress(function (p) {
+        if (!self.$valid) return;
+        if (!p || !p.bookKey) return;
+        const idx = self.list.findIndex(function (it) { return it.bookKey === p.bookKey; });
+        if (idx < 0) return;
+        const newList = self.list.slice();
+        newList[idx] = Object.assign({}, newList[idx], {
+          progress: p.percent,
+          downloading: true,
+          statusText: '下载中 ' + p.percent + '%'
+        });
+        self.list = newList;
+      });
+      this.loadShelf();
+    },
+    onDestroy() {
+      if (this._delTimer) {
+        clearTimeout(this._delTimer);
+        this._delTimer = null;
+      }
+    },
+    loadShelf() {
+      const self = this;
+      this.loading = true;
+      this.list = [];
+      api.fetchShelf(this.svc).then((res) => {
+        self.loading = false;
+        if (!res || !res.ok) {
+          prompt.showToast({ message: (res && res.message) || '书架加载失败' });
+          return;
+        }
+        const raw = res.items || [];
+        const entries = raw.map(function (b) {
+          const taskId = b.taskId;
+          const bookKey = self.svc + '_' + taskId;
+          return {
+            taskId: taskId,
+            title: b.title || '未命名',
+            author: b.author || '',
+            downloadUrl: b.downloadUrl || '',
+            bookKey: bookKey,
+            uri: 'internal://files/books/' + bookKey + '.txt',
+            downloaded: false,
+            downloading: false,
+            progress: 0,
+            size: 0,
+            readPct: 0,
+            statusText: '点击下载',
+            delText: ''
+          };
+        });
+        self.list = entries;
+        // 批量检测本地是否已下载
+        entries.forEach(function (it) {
+          file.access({
+            uri: it.uri,
+            success: function () {
+              self._markDownloaded(it.bookKey);
+            },
+            fail: function () {
+              // 未下载，保持原状
+            }
+          });
+        });
+      }).catch(() => {
+        self.loading = false;
+        prompt.showToast({ message: '书架加载失败' });
+      });
+    },
+    _markDownloaded(bookKey) {
+      const self = this;
+      const idx = this.list.findIndex(function (it) { return it.bookKey === bookKey; });
+      if (idx < 0) return;
+      const it = this.list[idx];
+      Promise.all([
+        store.getBookMeta(this.svc, it.taskId),
+        store.getProgress(it.uri)
+      ]).then(function (arr) {
+        const meta = arr[0];
+        const off = arr[1] || 0;
+        const size = (meta && meta.size) || 0;
+        const readPct = size > 0 && off > 0 ? Math.round(off / size * 100) : 0;
+        self._updateItem(bookKey, {
+          downloaded: true,
+          downloading: false,
+          progress: 100,
+          size: size,
+          readPct: readPct,
+          statusText: readPct > 0 ? ('已读 ' + readPct + '%') : '已下载',
+          delText: '删除'
+        });
+      });
+    },
+    _updateItem(bookKey, patch) {
+      const idx = this.list.findIndex(function (it) { return it.bookKey === bookKey; });
+      if (idx < 0) return;
+      const newList = this.list.slice();
+      newList[idx] = Object.assign({}, newList[idx], patch);
+      this.list = newList;
+    },
+    onItemClick(item) {
+      if (item.downloaded) {
+        router.push({
+          uri: 'Reader',
+          params: { uri: item.uri, title: item.title, svc: this.svc }
+        });
+        return;
+      }
+      if (item.downloading) return;
+      const self = this;
+      this._updateItem(item.bookKey, { downloading: true, progress: 0, statusText: '下载中 0%' });
+      api.downloadBook(this.svc, item).then((res) => {
+        if (res && res.ok) {
+          prompt.showToast({ message: '下载完成' });
+          // 取文件大小作为 size
+          file.get({
+            uri: item.uri,
+            success: function (data) {
+              const size = (data && data.length) || 0;
+              store.setBookMeta(self.svc, item.taskId, {
+                title: item.title,
+                author: item.author,
+                uri: item.uri,
+                size: size
+              });
+              self._markDownloaded(item.bookKey);
+            },
+            fail: function () {
+              store.setBookMeta(self.svc, item.taskId, {
+                title: item.title,
+                author: item.author,
+                uri: item.uri,
+                size: 0
+              });
+              self._markDownloaded(item.bookKey);
+            }
+          });
+        } else {
+          prompt.showToast({ message: (res && res.message) || '下载失败' });
+          self._updateItem(item.bookKey, {
+            downloading: false,
+            progress: 0,
+            statusText: '点击下载'
+          });
+        }
+      }).catch(() => {
+        prompt.showToast({ message: '下载失败' });
+        self._updateItem(item.bookKey, {
+          downloading: false,
+          progress: 0,
+          statusText: '点击下载'
+        });
+      });
+    },
+    onDelClick(item) {
+      if (!item.downloaded) return;
+      const self = this;
+      if (this.confirmDelKey !== item.bookKey) {
+        this.confirmDelKey = item.bookKey;
+        this._updateItem(item.bookKey, { delText: '确认？' });
+        if (this._delTimer) clearTimeout(this._delTimer);
+        this._delTimer = setTimeout(function () {
+          if (!self.$valid) return;
+          const prev = self.confirmDelKey;
+          self.confirmDelKey = '';
+          if (prev) self._updateItem(prev, { delText: '删除' });
+        }, 10000);
+        return;
+      }
+      // 二次确认 → 执行删除
+      this.confirmDelKey = '';
+      if (this._delTimer) {
+        clearTimeout(this._delTimer);
+        this._delTimer = null;
+      }
+      file.delete({
+        uri: item.uri,
+        success: function () {
+          store.delBookMeta(self.svc, item.taskId);
+          self._updateItem(item.bookKey, {
+            downloaded: false,
+            downloading: false,
+            progress: 0,
+            size: 0,
+            readPct: 0,
+            statusText: '点击下载',
+            delText: ''
+          });
+          prompt.showToast({ message: '已删除' });
+        },
+        fail: function () {
+          prompt.showToast({ message: '删除失败' });
+          self._updateItem(item.bookKey, { delText: '删除' });
+        }
+      });
+    },
+    onLogout() {
+      const self = this;
+      store.setSession(this.svc, '').then(function () {
+        prompt.showToast({ message: '已退出登录' });
+        router.replace({ uri: 'Entry' });
+      });
+    }
+  };
+</script>

@@ -1,0 +1,60 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    // applicationId 必须与手环快应用 manifest.json 的 package 完全一致：com.moshinovel
+    namespace 'com.moshinovel'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.moshinovel"
+        minSdk 24          // Android 7.0；前台服务/通知在低版本做了兼容
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        debug {
+            // 调试包默认用 ~/.android/debug.keystore 即可跑通业务；
+            // 但若要与手环 rpk 做 interconnect 真机通信，debug 签名也必须与
+            // watch-app/sign/debug/ 下的证书同源（见 README「签名对齐」）。
+        }
+        release {
+            // TODO(签名同源): 指向与 watch-app/sign/release/ 同源的 jks。
+            // 为避免把任何凭据写入仓库，口令一律从 ~/.gradle/gradle.properties 读取：
+            //   MOSHI_STORE_FILE=/abs/path/to/moshi-bridge.jks
+            //   MOSHI_STORE_PASSWORD=***
+            //   MOSHI_KEY_ALIAS=moshi
+            //   MOSHI_KEY_PASSWORD=***
+            // storeFile  rootProject.hasProperty('MOSHI_STORE_FILE') ? file(MOSHI_STORE_FILE) : null
+            // storePassword rootProject.findProperty('MOSHI_STORE_PASSWORD')
+            // keyAlias      rootProject.findProperty('MOSHI_KEY_ALIAS')
+            // keyPassword   rootProject.findProperty('MOSHI_KEY_PASSWORD')
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // 摩柿 HTTPS 客户端（登录/书架/下载）。最小依赖即这两个。
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    // TODO(SDK 集成点): 在此引入小米穿戴第三方 APP 开放能力 SDK（aar），
+    // 见 WatchChannel.java 顶部注释与 README「SDK 接入」。
+}

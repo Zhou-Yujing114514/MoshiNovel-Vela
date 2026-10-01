@@ -1,0 +1,216 @@
+<template>
+  <div class="page">
+    <div class="topbar">
+      <text class="topbar-title">本地书库</text>
+    </div>
+
+    <text class="empty" show="{{list.length === 0}}">本地暂无书籍</text>
+
+    <list class="lib-list" show="{{list.length > 0}}">
+      <list-item class="lib-item" type="item" tid="item" for="{{list}}">
+        <div class="item-row">
+          <div class="item-left" onclick="onItemClick($item)">
+            <text class="item-title">{{$item.title}}</text>
+            <text class="item-author">{{$item.subText}}</text>
+          </div>
+          <div class="item-right">
+            <text class="item-status" onclick="onItemClick($item)">{{$item.statusText}}</text>
+            <input class="del-btn" type="button" value="{{$item.delText}}" onclick="onDelClick($item)" />
+          </div>
+        </div>
+      </list-item>
+    </list>
+  </div>
+</template>
+
+<style>
+  .page {
+    flex-direction: column;
+    background-color: #000000;
+    flex: 1;
+  }
+  .topbar {
+    flex-direction: row;
+    align-items: center;
+    height: 76px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .topbar-title {
+    font-size: 40px;
+    color: #ffffff;
+  }
+  .empty {
+    font-size: 30px;
+    color: #aaaaaa;
+    margin-top: 140px;
+  }
+  .lib-list {
+    flex: 1;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .lib-item {
+    margin-bottom: 10px;
+  }
+  .item-row {
+    flex-direction: row;
+    align-items: center;
+    background-color: #1c1c1c;
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .item-left {
+    flex: 1;
+    flex-direction: column;
+  }
+  .item-title {
+    font-size: 34px;
+    color: #ffffff;
+  }
+  .item-author {
+    font-size: 28px;
+    color: #9aa0aa;
+    margin-top: 8px;
+  }
+  .item-right {
+    flex-direction: column;
+    align-items: flex-end;
+    width: 150px;
+  }
+  .item-status {
+    font-size: 28px;
+    color: #33b4ff;
+  }
+  .del-btn {
+    font-size: 26px;
+    color: #ff9c9c;
+    background-color: #2a1f1f;
+    border-radius: 10px;
+    height: 52px;
+    margin-top: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+</style>
+
+<script>
+  import router from '@system.router';
+  import prompt from '@system.prompt';
+  import file from '@system.file';
+  import store from '../common/store.js';
+
+  const BOOKS_DIR = 'internal://files/books/';
+
+  export default {
+    private: {
+      list: [],
+      confirmDelKey: '',
+      _delTimer: null
+    },
+    onInit() {
+      this.loadLocal();
+    },
+    onDestroy() {
+      if (this._delTimer) {
+        clearTimeout(this._delTimer);
+        this._delTimer = null;
+      }
+    },
+    loadLocal() {
+      const self = this;
+      file.list({
+        uri: BOOKS_DIR,
+        success: function (data) {
+          const files = (data && data.fileList) || [];
+          const txtFiles = files.filter(function (f) {
+            const u = (f && (f.uri || f)) || '';
+            return typeof u === 'string' && u.indexOf('.txt') >= 0;
+          });
+          Promise.all(txtFiles.map(function (f) { return self._buildEntry(f); })).then(function (entries) {
+            self.list = entries;
+          });
+        },
+        fail: function () {
+          self.list = [];
+          prompt.showToast({ message: '读取本地书库失败' });
+        }
+      });
+    },
+    _buildEntry(f) {
+      const uri = f.uri;
+      const name = uri.substring(uri.lastIndexOf('/') + 1);
+      const bookKey = name.replace(/\.txt$/, '');
+      const sep = bookKey.indexOf('_');
+      const svc = sep >= 0 ? bookKey.substring(0, sep) : '';
+      const taskId = sep >= 0 ? bookKey.substring(sep + 1) : bookKey;
+      const self = this;
+      return Promise.all([
+        store.getBookMeta(svc, taskId),
+        store.getProgress(uri)
+      ]).then(function (arr) {
+        const meta = arr[0];
+        const off = arr[1] || 0;
+        const size = (meta && meta.size) || f.length || 0;
+        const title = (meta && meta.title) ? meta.title : name;
+        const author = (meta && meta.author) || '';
+        const readPct = size > 0 && off > 0 ? Math.round(off / size * 100) : 0;
+        return {
+          bookKey: bookKey,
+          uri: uri,
+          svc: svc,
+          taskId: taskId,
+          title: title,
+          subText: author || name,
+          statusText: readPct > 0 ? ('已读 ' + readPct + '%') : '未读',
+          delText: '删除'
+        };
+      });
+    },
+    _updateItem(bookKey, patch) {
+      const idx = this.list.findIndex(function (it) { return it.bookKey === bookKey; });
+      if (idx < 0) return;
+      const newList = this.list.slice();
+      newList[idx] = Object.assign({}, newList[idx], patch);
+      this.list = newList;
+    },
+    onItemClick(item) {
+      router.push({
+        uri: 'Reader',
+        params: { uri: item.uri, title: item.title, svc: item.svc }
+      });
+    },
+    onDelClick(item) {
+      const self = this;
+      if (this.confirmDelKey !== item.bookKey) {
+        this.confirmDelKey = item.bookKey;
+        this._updateItem(item.bookKey, { delText: '确认？' });
+        if (this._delTimer) clearTimeout(this._delTimer);
+        this._delTimer = setTimeout(function () {
+          if (!self.$valid) return;
+          const prev = self.confirmDelKey;
+          self.confirmDelKey = '';
+          if (prev) self._updateItem(prev, { delText: '删除' });
+        }, 10000);
+        return;
+      }
+      this.confirmDelKey = '';
+      if (this._delTimer) {
+        clearTimeout(this._delTimer);
+        this._delTimer = null;
+      }
+      file.delete({
+        uri: item.uri,
+        success: function () {
+          store.delBookMeta(item.svc, item.taskId);
+          self.list = self.list.filter(function (it) { return it.bookKey !== item.bookKey; });
+          prompt.showToast({ message: '已删除' });
+        },
+        fail: function () {
+          prompt.showToast({ message: '删除失败' });
+          self._updateItem(item.bookKey, { delText: '删除' });
+        }
+      });
+    }
+  };
+</script>

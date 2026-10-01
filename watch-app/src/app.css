@@ -1,0 +1,92 @@
+/* 摩柿小说 · 全局样式（深色阅读主题）
+ * 注意：Vela 样式仅支持类/ID/标签选择器，不支持后代/属性/通配选择器；布局为 flex。
+ * 基准宽度 designWidth=480，所有 px 按实际屏幕宽度等比缩放（手环9Pro 336×480）。
+ */
+
+.page {
+  width: 100%;
+  height: 100%;
+  background-color: #000000;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 34px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.sub {
+  font-size: 26px;
+  color: #9aa0ab;
+}
+
+.card {
+  width: 100%;
+  background-color: #1a1a1a;
+  margin-bottom: 20px;
+  padding: 24px;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 38px;
+  color: #ffffff;
+}
+
+.card-sub {
+  font-size: 28px;
+  color: #9aa0ab;
+  margin-top: 10px;
+}
+
+.row {
+  flex-direction: row;
+  align-items: center;
+}
+
+.btn {
+  width: 100%;
+  height: 80px;
+  background-color: #33b4ff;
+  color: #ffffff;
+  font-size: 30px;
+}
+
+.btn-secondary {
+  width: 100%;
+  height: 80px;
+  background-color: #2c2c2c;
+  color: #ffffff;
+  font-size: 30px;
+}
+
+.btn-small {
+  height: 56px;
+  background-color: #2c2c2c;
+  color: #ffffff;
+  font-size: 28px;
+  padding: 0 18px;
+}
+
+.input {
+  width: 100%;
+  height: 80px;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  font-size: 30px;
+  padding: 0 20px;
+  margin-bottom: 16px;
+}
+
+.status-text {
+  font-size: 26px;
+  color: #6b7280;
+}
+
+.divider {
+  width: 100%;
+  height: 2px;
+  background-color: #242424;
+  margin: 8px 0;
+}

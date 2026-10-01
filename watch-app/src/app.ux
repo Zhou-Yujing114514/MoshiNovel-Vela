@@ -1,0 +1,32 @@
+<script>
+/**
+ * 摩柿小说 · 应用入口
+ * 全局生命周期：页面内可通过 this.$app.$def.<name> 访问此处定义的数据/方法
+ */
+export default {
+  $def: {
+    APP_NAME: '摩柿小说',
+    APP_VERSION: '1.0.0'
+  },
+
+  onCreate() {
+    console.log('[app] onCreate')
+  },
+
+  onShow() {
+    console.log('[app] onShow')
+  },
+
+  onHide() {
+    console.log('[app] onHide')
+  },
+
+  onDestroy() {
+    console.log('[app] onDestroy')
+  },
+
+  onError(e) {
+    console.error('[app] onError: ' + JSON.stringify(e))
+  }
+}
+</script>

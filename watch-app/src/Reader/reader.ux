@@ -1,0 +1,160 @@
+<template>
+  <div class="page" onswipe="onSwipe">
+    <!-- 顶栏：书名（小字，超长省略） -->
+    <div class="navbar">
+      <text class="bookname" >{{title}}</text>
+    </div>
+
+    <!-- 中部正文：scroll 定高区域 + text 渲染当前页 -->
+    <scroll class="content" scroll-y onswipe="onSwipe">
+      <text class="loading" show="{{loading}}">载入中…</text>
+      <text class="body" show="{{!loading}}">{{text}}</text>
+    </scroll>
+
+    <!-- 底部：进度百分比 + 上页/下页按钮 -->
+    <div class="bottombar">
+      <text class="percent">{{percent}}%</text>
+      <input class="nav-btn" type="button" value="上页" onclick="prevPage" />
+      <input class="nav-btn" type="button" value="下页" onclick="nextPage" />
+    </div>
+  </div>
+</template>
+
+<style>
+  .page {
+    flex-direction: column;
+    background-color: #000000;
+    flex: 1;
+  }
+  .navbar {
+    height: 56px;
+    padding-left: 24px;
+    padding-right: 24px;
+    justify-content: center;
+  }
+  .bookname {
+    font-size: 28px;
+    color: #9aa0aa;
+  }
+  .content {
+    flex: 1;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .loading {
+    font-size: 28px;
+    color: #9aa0aa;
+    margin-top: 140px;
+  }
+  .body {
+    font-size: 46px;
+    line-height: 1.5;
+    color: #f2f4f7;
+  }
+  .bottombar {
+    height: 76px;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .percent {
+    font-size: 28px;
+    color: #9aa0aa;
+    margin-right: 20px;
+  }
+  .nav-btn {
+    width: 140px;
+    height: 56px;
+    margin-left: 16px;
+    font-size: 30px;
+    color: #ffffff;
+    background-color: #33b4ff;
+    border-radius: 12px;
+  }
+</style>
+
+<script>
+  import router from '@system.router'
+  import prompt from '@system.prompt'
+  import Reader from '../common/reader.js'
+  import store from '../common/store.js'
+
+  export default {
+    // 路由参数（router.push 传入：uri / title / svc）
+    public: {
+      uri: '',
+      title: '',
+      svc: ''
+    },
+    private: {
+      loading: true,   // 首次加载中
+      text: '',       // 当前页文本
+      percent: 0      // 进度百分比 0-100
+    },
+    onInit() {
+      var self = this
+      // 创建阅读器实例：每页 5 行，正文 46px（大字号阅读，仿弦电子书观感）
+      this.reader = Reader.createReader(this.uri, { linesPerPage: 5, fontSize: 46 })
+      this.reader.init().then(function (info) {
+        // 文件不存在（file 301）：toast 后返回书架
+        if (info && info.notFound) {
+          prompt.showToast({ message: '文件不存在' })
+          setTimeout(function () {
+            if (!self.$valid) return
+            router.back()
+          }, 900)
+          return null
+        }
+        // 恢复上次阅读进度字节偏移
+        return store.getProgress(self.uri).then(function (off) {
+          return self.reader.restore(off || 0)
+        }).then(function (r) {
+          if (!self.$valid) return
+          self.loading = false
+          if (r) {
+            self.text = r.text
+            self.percent = self.reader.percent()
+          }
+        })
+      })
+    },
+    // 下一页
+    nextPage() {
+      var self = this
+      this.reader.nextPage().then(function (r) {
+        if (!self.$valid) return
+        if (r.atEnd) {
+          prompt.showToast({ message: '已是最后一页' })
+          return
+        }
+        if (r.fail) {
+          prompt.showToast({ message: '读取失败' })
+          return
+        }
+        self.text = r.text
+        self.percent = self.reader.percent()
+      })
+    },
+    // 上一页
+    prevPage() {
+      var self = this
+      this.reader.prevPage().then(function (r) {
+        if (!self.$valid) return
+        if (r.atStart) {
+          prompt.showToast({ message: '已是第一页' })
+          return
+        }
+        self.text = r.text
+        self.percent = self.reader.percent()
+      })
+    },
+    // 滑动翻页：left → 下一页，right → 上一页
+    // （swipe 不冒泡，故在 page 根节点与 content 滚动区都绑一次，互斥触发）
+    onSwipe(e) {
+      if (!e) return
+      if (e.direction === 'left') this.nextPage()
+      else if (e.direction === 'right') this.prevPage()
+    }
+  }
+</script>

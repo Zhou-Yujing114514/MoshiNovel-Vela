@@ -1,0 +1,9 @@
+# 构建产物
+watch-app/build/
+watch-app/dist/
+watch-app/.temp*/
+# 依赖
+watch-app/node_modules/
+# 系统
+.DS_Store
+*.log

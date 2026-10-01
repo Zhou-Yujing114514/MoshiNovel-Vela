@@ -1,0 +1,11 @@
+{
+  "name": "moshinovel-watch",
+  "version": "1.0.0",
+  "description": "摩柿小说 - 小米手环9Pro QuickApp（Vela）",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 请使用 AIoT-IDE 的【打包】功能生成 rpk，详见 README.md"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -91,7 +91,7 @@ MoshiNovel-Vela/
 - 组件：`MoraxClient.java`（摩柿 HTTPS 客户端：登录取 session Cookie、书架、流式下载）、`BridgeService.java`（前台服务：协议主循环 + http 代理 + 分片回传）、`WatchChannel.java`（小米穿戴 SDK 集成点，按《小米穿戴第三方APP能力开放接口文档》接入）、`MainActivity.java`（最小入口）。
 - 说明：本 companion 源码同时含虚空终端聊天客户端（VoidTerminalClient.java 与 vt_* 动作），供另一独立工程 VoidTerminal-Vela 使用；**摩柿工程只使用 login/shelf/download/http/ping 动作**，vt_* 分支未启用不影响本应用。
 - 构建：需要 Android SDK；本交付为源码 + 精确步骤（见 phone-bridge/README.md），沙箱未编译验证。
-- 摩柿后端参数（复用已验证 ESP8266 客户端细节）：`morax.kdns.fr` HTTPS，SSL 指纹 `B2:C3:C9:FC:EA:DF:2D:51:9F:DA:57:54:23:FE:BB:D7:22:17:2C:07`。
+- 摩柿后端参数（复用已验证 ESP8266 客户端细节）：`morax.sswwgzs.cn` HTTPS，SSL 指纹 `B2:C3:C9:FC:EA:DF:2D:51:9F:DA:57:54:23:FE:BB:D7:22:17:2C:07`。
 
 ## 六、摩柿测试账号
 

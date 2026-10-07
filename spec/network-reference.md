@@ -350,4 +350,4 @@ if (await NetworkCheck() || SETTINGS.enableInterconnectMode) {
 - `response.headers['Set-Cookie']` 在不同设备上是 String 还是 Array——代码两种都处理了，实测确认。
 - fetch 在 9Pro 上是否要求"小米运动健康"前台运行还是后台即可——社区说法是连接即可，未实证。
 - interconnect onclose 时 pending 请求是否真挂起——成熟实现未处理，我们自己实现时需 reject。
-- 域名白名单：manifest/quickapp.config 未发现，但不排除 Vela 框架层有隐藏白名单——需真机测一个自定义域名（morax.kdns.fr）确认可达。
+- 域名白名单：manifest/quickapp.config 未发现，但不排除 Vela 框架层有隐藏白名单——需真机测一个自定义域名（morax.sswwgzs.cn）确认可达。

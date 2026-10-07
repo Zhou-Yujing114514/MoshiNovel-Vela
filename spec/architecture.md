@@ -7,7 +7,7 @@
 
 - 目标设备：小米手环 9 Pro（Vela OS，QuickApp/快应用 JS 框架）。
 - **关键限制：9/9Pro 上 system.fetch / system.request / system.uploadtask 均"不支持"**（来源：Vela 文档 features/network 支持明细；社区实证米坛 BandBBS 亦确认 band9 无 @system.fetch）。
-- **联网通路（用户纠正后确认）：手环经 BLE 连接手机、以手机网络为网关——即 `system.interconnect` 与手机端桥接 App 通信**。官方文档 interconnect 页未列 9Pro 支持明细，但社区实证（米坛 BandBBS：band9 支持 interconnect，需配套安卓 App 透传；澎湃哔哩等三方应用"小米运动健康连接后即可联网"）佐证 9 系列可用。手机端完成 HTTPS 请求（摩柿 morax.kdns.fr / 虚空终端 buer.kdns.fr），再把结果回传手表。
+- **联网通路（用户纠正后确认）：手环经 BLE 连接手机、以手机网络为网关——即 `system.interconnect` 与手机端桥接 App 通信**。官方文档 interconnect 页未列 9Pro 支持明细，但社区实证（米坛 BandBBS：band9 支持 interconnect，需配套安卓 App 透传；澎湃哔哩等三方应用"小米运动健康连接后即可联网"）佐证 9 系列可用。手机端完成 HTTPS 请求（摩柿 morax.sswwgzs.cn / 虚空终端 buer.sswwgzs.cn），再把结果回传手表。
 - **备选通路（无手机，已获社区实证，2026-09-30 视频纪要核验）：ESP32 蓝牙网关**——ESP32 刷蓝牙网关固件（3 个固件烧录），配网页 192.168.4.1 填家庭 WiFi 密码 + 手环 MAC + KEY；手环经 BLE 连 ESP32，由 ESP32 转发网络请求到互联网（演示：未连手机时可加载图片、更新天气）。**该网关对 QuickApp 透明：应用仍用 fetch/请求，仅底层链路不同**（BLE 承载由系统运行层管理，应用无需 BLE 客户端 API）。两种网关（手机桥 / ESP32）配置说明均写入 README。
 - [联网能力专项复查结论（定稿，2026-09-30）]：**9Pro Vela QuickApp 不能直接 fetch/HTTP，也无 socket/websocket/BLE GATT；一切联网只能由配对手机 App 当网关经 system.interconnect 透传**（社区旁证：手环 B站等三方应用需小米运动健康连接后才可联网）。interconnect 在 9Pro 官方未给支持表 → 须真机 POC，README 明示此风险与验证步骤。
 - 手表本地能力：system.file（writeText append / readArrayBuffer position+length / list / delete / access）、system.storage（get/set/delete）、system.prompt、system.vibrator、system.router。
@@ -124,21 +124,21 @@ entry ──┬─ [摩柿] → login(service=moshi) → shelf(moshi) ──┬�
 ```js
 // common/api.js
 const SERVICES = {
-  moshi: { key: 'moshi', label: '摩柿', host: 'morax.kdns.fr', backend: 'https' },
-  void:  { key: 'void',  label: '虚空终端', host: 'buer.kdns.fr', backend: 'NONE' }
+  moshi: { key: 'moshi', label: '摩柿', host: 'morax.sswwgzs.cn', backend: 'https' },
+  void:  { key: 'void',  label: '虚空终端', host: 'buer.sswwgzs.cn', backend: 'NONE' }
 };
 ```
 
 - 所有页面不感知具体服务：`api.login(service, u, p)` / `api.shelf(service)` / `api.download(service, book)`。
 - 手机端桥接 App 内实现摩柿后端适配，向手表暴露同一协议。
-- **虚空终端结论（子任务B实测，2026-09-30）：buer.kdns.fr 无 HTTP 书架/下载 TXT API**（`POST /api/login` 换 token + `wss://buer.kdns.fr/ws` 聊天 + `/api/status` 主机监控探针；实测 `GET /api/bookshelf` → 404；26 条路由无任何书架/下载端点；qgs 监控 = `/opt/server_monitor.py` 主机健康探针，与书无关）。
+- **虚空终端结论（子任务B实测，2026-09-30）：buer.sswwgzs.cn 无 HTTP 书架/下载 TXT API**（`POST /api/login` 换 token + `wss://buer.sswwgzs.cn/ws` 聊天 + `/api/status` 主机监控探针；实测 `GET /api/bookshelf` → 404；26 条路由无任何书架/下载端点；qgs 监控 = `/opt/server_monitor.py` 主机健康探针，与书无关）。
 - 按用户预案：虚空终端 **不臆造 API**，交付形态 = 摩柿全功能闭环 + 虚空终端接入方案说明（README + 应用内"虚空终端"入口卡片点击后显示受限说明页：无公开书架 API；可选后续方案 = 手机端桥接长连 WSS 只读大厅）。
 - 因此应用内仍保留双服务入口并列（用户要求的功能形态），虚空终端页为"受限说明 + 接入方案"静态内容，不发起虚构请求。
 
 ## 8. 手机端桥接（phone-bridge/，冻结交付形态）
 
 - Android 工程（Android Studio，Java/Kotlin 均可），**包名 = manifest.json 的 package，签名 = rpk 同一签名**（jks→p12→pem 流程按 Vela 文档）。
-- 功能：监听 interconnect（对端 SDK 接入方式 [TBD-子任务A i 项]），实现 HTTPS 客户端（morax.kdns.fr：POST /api/login 取 Set-Cookie session、GET /api/bookshelf、GET download_url；虚空终端按子任务B结论），分片回传手表。
+- 功能：监听 interconnect（对端 SDK 接入方式 [TBD-子任务A i 项]），实现 HTTPS 客户端（morax.sswwgzs.cn：POST /api/login 取 Set-Cookie session、GET /api/bookshelf、GET download_url；虚空终端按子任务B结论），分片回传手表。
 - 附 README：构建 APK、签名对齐、手机安装、与手环配对、排障（adb logcat、手表端日志）。
 - 交付：源码 + 构建说明；环境不允许则给出精确步骤。（README 中不得出现任何 SSH 凭据。）
 
@@ -252,12 +252,12 @@ const SERVICES = {
 
 ## 11. 虚空终端聊天集成（v0.3，2026-09-30 新增；实现基准，子任务须遵守）
 
-> 需求更正：虚空终端（buer.kdns.fr）是**聊天（IM）服务**，摩柿才是书架。虚空终端模块从"受限说明页"升级为**完整聊天**：登录 → 房间/会话列表 → 收发消息。协议细节以 spec/voidterminal-im.md（R1 深挖）为准。
+> 需求更正：虚空终端（buer.sswwgzs.cn）是**聊天（IM）服务**，摩柿才是书架。虚空终端模块从"受限说明页"升级为**完整聊天**：登录 → 房间/会话列表 → 收发消息。协议细节以 spec/voidterminal-im.md（R1 深挖）为准。
 
 ### 11.1 拓扑与前提（冻结）
 
 - Vela QuickApp **无 WebSocket API**（网络分类仅 fetch/interconnect/request/uploadtask）→ **WSS 长连由手机端桥接 App 持有**，手环经 interconnect 收发聊天报文。无桥接时聊天不可用（页面给中文提示"请连接手机桥接"）；摩柿小说不受影响（可走 fetch 直连）。
-- 手机桥接内实现虚空终端客户端：`POST /api/login` 换 token → 连 `wss://buer.kdns.fr/ws`（不带 Origin 放行）→ 发 `{type:'auth',token,lite:true}` → 收 hello 与 global/dm/group 推送 → 回 pong、20s 心跳、断线 5s 重连 + 重新 auth。TLS 走系统信任链，不硬 pin（Cloudflare 证书轮换）。
+- 手机桥接内实现虚空终端客户端：`POST /api/login` 换 token → 连 `wss://buer.sswwgzs.cn/ws`（不带 Origin 放行）→ 发 `{type:'auth',token,lite:true}` → 收 hello 与 global/dm/group 推送 → 回 pong、20s 心跳、断线 5s 重连 + 重新 auth。TLS 走系统信任链，不硬 pin（Cloudflare 证书轮换）。
 - 会话历史：lite 模式 hello 仅最近 10 条 globalMsgs；群/私聊历史仅实时——v1 接受此限制，README 记录。
 
 ### 11.2 桥接协议扩展（在 §3 基础上追加，冻结）

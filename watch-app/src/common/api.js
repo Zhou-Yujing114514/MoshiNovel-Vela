@@ -19,7 +19,7 @@ const SERVICES = {
 }
 
 // 摩柿后端地址
-var MOSHI_BASE = 'https://morax.kdns.fr'
+var MOSHI_BASE = 'https://morax.sswwgzs.cn'
 // 桌面 Firefox UA（防后端风控）
 var DESKTOP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:129.0) Gecko/20100101 Firefox/129.0'
 // 直连下载正文上限（字节）：超过则回退桥接分片（低内存）

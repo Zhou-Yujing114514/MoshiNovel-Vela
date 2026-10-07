@@ -10,12 +10,12 @@
 ## 0. 总览：一条连接的完整时序
 
 ```
-[手环] --interconnect--> [手机桥] --WSS--> [buer.kdns.fr:443/ws]
+[手环] --interconnect--> [手机桥] --WSS--> [buer.sswwgzs.cn:443/ws]
 
 1. 手环: action=login {username,password}
-2. 手机桥: POST https://buer.kdns.fr/api/login  {username,password}
+2. 手机桥: POST https://buer.sswwgzs.cn/api/login  {username,password}
 3. 服务端: 200 {ok:true, token:"<opaque>", user:{...}}
-4. 手机桥: 存 token；连 wss://buer.kdns.fr/ws
+4. 手机桥: 存 token；连 wss://buer.sswwgzs.cn/ws
 5. 手机桥: 连接建立后立即发 {"type":"auth","token":"<token>","lite":true}
 6. 服务端: {"type":"hello", self, friends[], groups[], globalMsgs[], ...}
 7. 手机桥: 把 hello 归一化后经 interconnect 推给手环（会话列表初始化）
@@ -32,8 +32,8 @@
 
 | 项 | 值 | 代码依据 |
 |---|---|---|
-| WSS 地址 | `wss://buer.kdns.fr:443/ws` | `connectWebSocket()` → `beginSSL(CHAT_SERVER, CHAT_PORT, "/ws", ...)`；`CHAT_SERVER="buer.kdns.fr"`, `CHAT_PORT=443` |
-| Origin 头 | ESP 显式设 `Origin: https://buer.kdns.fr` | `setExtraHeaders("Origin: https://buer.kdns.fr")`。手机桥用原生 WS 客户端时**可带可不带**（基座实测：不带 Origin 服务端 `verifyClient` 直接放行）；带上更稳。 |
+| WSS 地址 | `wss://buer.sswwgzs.cn:443/ws` | `connectWebSocket()` → `beginSSL(CHAT_SERVER, CHAT_PORT, "/ws", ...)`；`CHAT_SERVER="buer.sswwgzs.cn"`, `CHAT_PORT=443` |
+| Origin 头 | ESP 显式设 `Origin: https://buer.sswwgzs.cn` | `setExtraHeaders("Origin: https://buer.sswwgzs.cn")`。手机桥用原生 WS 客户端时**可带可不带**（基座实测：不带 Origin 服务端 `verifyClient` 直接放行）；带上更稳。 |
 | TLS 校验 | **不要照抄 ESP 的硬证书指纹** | ESP pin 死 `1C:86:...:E1` 是因为它没有系统 CA 库；buer 走 Cloudflare，边缘证书会轮换。手机桥用系统 TLS 信任链正常校验域名即可。 |
 
 ---
@@ -41,7 +41,7 @@
 ## 2. HTTP 登录（手机桥侧，手环只传账号密码）
 
 ```
-POST https://buer.kdns.fr/api/login
+POST https://buer.sswwgzs.cn/api/login
 Content-Type: application/json
 
 {"username":"<账号>","password":"<密码>"}

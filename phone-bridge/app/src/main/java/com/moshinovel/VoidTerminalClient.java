@@ -24,14 +24,14 @@ import okhttp3.WebSocketListener;
 import okio.ByteString;
 
 /**
- * 虚空终端（buer.kdns.fr）聊天客户端。
+ * 虚空终端（buer.sswwgzs.cn）聊天客户端。
  *
  * 背景：Vela QuickApp 无 WebSocket API，WSS 长连由本手机桥持有，手环经 interconnect 收发。
  * 字段级依据：spec/voidterminal-im.md；桥接动作字段依据：architecture.md §11.2。
  *
  * 职责：
- *   1) vtLogin：POST https://buer.kdns.fr/api/login {username,password} → {ok,token,user}；
- *      拿 token 后连 wss://buer.kdns.fr/ws，握手成功立即发 {"type":"auth","token":..,"lite":true}，
+ *   1) vtLogin：POST https://buer.sswwgzs.cn/api/login {username,password} → {ok,token,user}；
+ *      拿 token 后连 wss://buer.sswwgzs.cn/ws，握手成功立即发 {"type":"auth","token":..,"lite":true}，
  *      等 hello（self/friends/groups/globalMsgs）。
  *   2) 维护会话表：大厅 roomKey="global"（服务端内部 id "public" 映射而来）+
  *      friends→"dm:<uid>" + groups→"group:<gid>"；每会话 lastMsg/unread。
@@ -48,8 +48,8 @@ public class VoidTerminalClient {
 
     private static final String TAG = "VoidTerminal";
 
-    private static final String HTTP_BASE = "https://buer.kdns.fr";
-    private static final String WSS_URL = "wss://buer.kdns.fr/ws";
+    private static final String HTTP_BASE = "https://buer.sswwgzs.cn";
+    private static final String WSS_URL = "wss://buer.sswwgzs.cn/ws";
     private static final long RECONNECT_DELAY_MS = 5000;
     private static final long HEARTBEAT_MS = 20000;
     private static final String PUBLIC_ROOM_NAME = "网站问题反馈区";

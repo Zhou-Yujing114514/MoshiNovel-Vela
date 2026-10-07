@@ -43,7 +43,7 @@
                                                └──────────────┬──────────────┘
                                                               │ HTTPS
                                                               ▼
-                                                    https://morax.kdns.fr
+                                                    https://morax.sswwgzs.cn
                                                     /api/login · /api/bookshelf
 ```
 
@@ -184,22 +184,22 @@ openssl pkcs12 -nodes -in moshi-bridge.p12 -out moshi-bridge.pem
 - **常见问题**：
   - 报「未连接手机桥接」→ 小米运动健康与手环蓝牙断开；或本 App 前台服务被杀（把本 App 加入后台白名单/自启）。
   - 报「签名不正确」→ 本 App 证书与 rpk 的 pem 不同源，回到 §5 对齐。
-  - 摩柿登录失败 → 先确认手机本身能访问 `https://morax.kdns.fr`；证书指纹过期会在 `MoraxClient` 日志报
+  - 摩柿登录失败 → 先确认手机本身能访问 `https://morax.sswwgzs.cn`；证书指纹过期会在 `MoraxClient` 日志报
     「证书指纹不匹配」，需更新 `PINNED_SHA1_FINGERPRINT`。
 
 ---
 
-## 8. 虚空终端聊天（buer.kdns.fr，WSS 由本 App 持有）
+## 8. 虚空终端聊天（buer.sswwgzs.cn，WSS 由本 App 持有）
 
-虚空终端是聊天 IM 服务。Vela QuickApp **没有 WebSocket API**，因此 `wss://buer.kdns.fr/ws`
+虚空终端是聊天 IM 服务。Vela QuickApp **没有 WebSocket API**，因此 `wss://buer.sswwgzs.cn/ws`
 长连由本手机桥接 App 持有（`VoidTerminalClient.java`），手环只经 interconnect 收发 JSON。
 无桥接 App 时聊天不可用，手环页面应给中文提示「请连接手机桥接」。
 
 ### 8.1 连接链路（本 App 内部自动完成）
 
-1. 手环 `vt_login {username,password}` → 本 App `POST https://buer.kdns.fr/api/login`
+1. 手环 `vt_login {username,password}` → 本 App `POST https://buer.sswwgzs.cn/api/login`
    （JSON body）→ 取响应体 `token`（**不读 Set-Cookie**）；
-2. 本 App 连 `wss://buer.kdns.fr/ws`（不带 Origin 服务端放行；TLS 走系统信任链，
+2. 本 App 连 `wss://buer.sswwgzs.cn/ws`（不带 Origin 服务端放行；TLS 走系统信任链，
    buer 在 Cloudflare 后面、边缘证书轮换，**不硬 pin**）；
 3. 握手成功立即发 `{"type":"auth","token":"<token>","lite":true}`；
 4. 收服务端 `hello`：`self.id/username`、`friends[].id/.name`、`groups[].id/.name`、

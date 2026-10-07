@@ -28,7 +28,7 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 /**
- * 摩柿后端（morax.kdns.fr，HTTPS）客户端。
+ * 摩柿后端（morax.sswwgzs.cn，HTTPS）客户端。
  *
  * 已验证的后端行为（须与后端保持一致）：
  *   1) 登录：POST {BASE}/api/login，body JSON {"username":..,"password":..}
@@ -49,7 +49,7 @@ public class MoraxClient {
 
     private static final String TAG = "MoraxClient";
 
-    public static final String BASE = "https://morax.kdns.fr";
+    public static final String BASE = "https://morax.sswwgzs.cn";
     private static final String LOGIN_PATH = "/api/login";
     private static final String SHELF_PATH = "/api/bookshelf";
 

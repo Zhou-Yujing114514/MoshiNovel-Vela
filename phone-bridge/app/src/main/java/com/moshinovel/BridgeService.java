@@ -159,7 +159,7 @@ public class BridgeService extends Service implements WatchChannel.WatchMessageL
                 }
                 case "login": {
                     if (!"moshi".equals(service)) {
-                        respondError(reqId, 10, "虚空终端暂未接入书源（buer.kdns.fr 无书架 API）");
+                        respondError(reqId, 10, "虚空终端暂未接入书源（buer.sswwgzs.cn 无书架 API）");
                         return;
                     }
                     String username = payload.has("username") ? payload.get("username").getAsString() : "";
@@ -174,7 +174,7 @@ public class BridgeService extends Service implements WatchChannel.WatchMessageL
                 }
                 case "shelf": {
                     if (!"moshi".equals(service)) {
-                        respondError(reqId, 10, "虚空终端暂未接入书源（buer.kdns.fr 无书架 API）");
+                        respondError(reqId, 10, "虚空终端暂未接入书源（buer.sswwgzs.cn 无书架 API）");
                         return;
                     }
                     List<MoraxClient.Book> books = morax.bookshelf();
@@ -194,7 +194,7 @@ public class BridgeService extends Service implements WatchChannel.WatchMessageL
                 }
                 case "download": {
                     if (!"moshi".equals(service)) {
-                        respondError(reqId, 10, "虚空终端暂未接入书源（buer.kdns.fr 无书架 API）");
+                        respondError(reqId, 10, "虚空终端暂未接入书源（buer.sswwgzs.cn 无书架 API）");
                         return;
                     }
                     String bookKey = payload.has("bookKey") ? payload.get("bookKey").getAsString() : "";

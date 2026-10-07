@@ -7,9 +7,9 @@
 
 ## 0. 一句话核心结论
 
-**虚空终端（`buer.kdns.fr`）没有"登录→书架→下载 TXT"的同构 HTTP API。**
+**虚空终端（`buer.sswwgzs.cn`）没有"登录→书架→下载 TXT"的同构 HTTP API。**
 
-它是一个 **实时聊天网站**（类微信：大厅/群聊/私聊/朋友圈/文件与图片上传/AI 对话），后端 = Express + `ws`。与摩柿（`morax.kdns.fr`）**只在"恰好都用 `POST /api/login` + JSON 用户名密码换 token"这一点上形似**；登录之后完全分叉——虚空终端**没有任何书架列表、`download_url`、`task_id`、TXT 下载端点**（实测 `GET /api/bookshelf` 返回 404）。ESP8266 固件本身也从不从服务端拉书或下载 TXT；固件里唯一的"TXT"是通过设备自身 AP 网页把 TXT **上传到 ESP 的本地 SD 卡**供墨水屏阅读。
+它是一个 **实时聊天网站**（类微信：大厅/群聊/私聊/朋友圈/文件与图片上传/AI 对话），后端 = Express + `ws`。与摩柿（`morax.sswwgzs.cn`）**只在"恰好都用 `POST /api/login` + JSON 用户名密码换 token"这一点上形似**；登录之后完全分叉——虚空终端**没有任何书架列表、`download_url`、`task_id`、TXT 下载端点**（实测 `GET /api/bookshelf` 返回 404）。ESP8266 固件本身也从不从服务端拉书或下载 TXT；固件里唯一的"TXT"是通过设备自身 AP 网页把 TXT **上传到 ESP 的本地 SD 卡**供墨水屏阅读。
 
 要做手环小说阅读，**小说数据应继续走摩柿后端**；虚空终端只能作为"聊天"这一附加能力，不能当书源。
 
@@ -19,16 +19,16 @@
 
 | 项 | 值 | 说明 |
 |---|---|---|
-| 聊天站域名 | `buer.kdns.fr` | 公网入口，走 **Cloudflare Tunnel** |
+| 聊天站域名 | `buer.sswwgzs.cn` | 公网入口，走 **Cloudflare Tunnel** |
 | 对外协议/端口 | HTTPS 443（WSS 443） | 80 端口已对外关闭 |
-| 隧道链路 | Cloudflare Tunnel → 本机 nginx:80 → node `server.js`(:3000) | cloudflared ingress 仅挂了 `buer.kdns.fr` |
-| WebSocket | `wss://buer.kdns.fr:443/ws` | 经 nginx `/ws` location 升级代理到 :3000 |
+| 隧道链路 | Cloudflare Tunnel → 本机 nginx:80 → node `server.js`(:3000) | cloudflared ingress 仅挂了 `buer.sswwgzs.cn` |
+| WebSocket | `wss://buer.sswwgzs.cn:443/ws` | 经 nginx `/ws` location 升级代理到 :3000 |
 | TLS 证书 SHA1 指纹（固件 pinning 用） | `1C:86:71:D8:C7:8C:C4:BA:58:43:B6:12:FF:36:4E:63:7E:51:FA:E1` | 这是 **Cloudflare 边缘证书**指纹 |
 
 > ⚠️ 手环端不要照抄固件做硬指纹 pinning：固件 pin 死指纹是因为 ESP8266 没有系统 CA 库。buer 走 Cloudflare，边缘证书会轮换，硬 pin 会在证书更新后断连。手环应使用系统 TLS 信任链正常校验域名即可。
 
 WS 的 `Origin` 校验（服务端 `verifyClient` 实测）：
-- 请求**带** `Origin` 时，只允许 `https://buer.kdns.fr` / `http://buer.kdns.fr`，其余 403；
+- 请求**带** `Origin` 时，只允许 `https://buer.sswwgzs.cn` / `http://buer.sswwgzs.cn`，其余 403；
 - 请求**不带** `Origin`（原生 WS 客户端）→ **直接放行**。所以手环裸连 WSS 不带 Origin 也能握手。
 
 ---
@@ -38,7 +38,7 @@ WS 的 `Origin` 校验（服务端 `verifyClient` 实测）：
 ### 2.1 登录
 
 ```
-POST https://buer.kdns.fr/api/login
+POST https://buer.sswwgzs.cn/api/login
 Content-Type: application/json
 
 {"username":"<账号>","password":"<密码>"}
@@ -70,7 +70,7 @@ Set-Cookie: session=<token>; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800
 
 ---
 
-## 3. WebSocket 报文协议（`wss://buer.kdns.fr/ws`）
+## 3. WebSocket 报文协议（`wss://buer.sswwgzs.cn/ws`）
 
 这是虚空终端**唯一**的实时通道，全部为聊天语义。
 
@@ -139,10 +139,10 @@ Set-Cookie: session=<token>; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800
 **没有** `/api/bookshelf`、没有任何 `download_url` / `task_id` / 小说列表 / TXT 下载端点。本机实测：
 
 ```
-GET https://buer.kdns.fr/api/bookshelf  -> 404
+GET https://buer.sswwgzs.cn/api/bookshelf  -> 404
 ```
 
-> 旁证：聊天前端对"摩柿"唯一的引用是一个 `window.open('https://morax.kdns.fr')` 外链按钮——只是跳转到小说站，**不是 API 调用**。摩柿是另一套独立部署（不在本机 cloudflared/nginx 配置内）。
+> 旁证：聊天前端对"摩柿"唯一的引用是一个 `window.open('https://morax.sswwgzs.cn')` 外链按钮——只是跳转到小说站，**不是 API 调用**。摩柿是另一套独立部署（不在本机 cloudflared/nginx 配置内）。
 
 ---
 
@@ -153,8 +153,8 @@ ESP 固件里"聊天站 / 小说站"两个监控位，轮询的是**主机健康
 - 实现：`python3 /opt/server_monitor.py`，监听 `0.0.0.0:18080`。
 - 端点：`GET /api/status`（与 `/monitor` 同 handler）。
 - 经 nginx 对外：
-  - `GET https://buer.kdns.fr/api/status` —— **无认证**，给 ESP 轮询；
-  - `GET https://buer.kdns.fr/monitor` —— 带 HTTP Basic Auth（人工看的仪表盘）。
+  - `GET https://buer.sswwgzs.cn/api/status` —— **无认证**，给 ESP 轮询；
+  - `GET https://buer.sswwgzs.cn/monitor` —— 带 HTTP Basic Auth（人工看的仪表盘）。
 - 固件侧 URL 拼法：`http://<配网页填入的主机>:<端口>/api/status`（明文 HTTP，主机:端口在配网页运行时写入 EEPROM，出厂为空）。
 
 响应 JSON（本机实测样例字段）：
@@ -178,12 +178,12 @@ ESP 固件里"聊天站 / 小说站"两个监控位，轮询的是**主机健康
 
 ### 6.1 小说阅读（核心诉求）
 - **不要用虚空终端当书源**。它没有书架/下载 API。
-- 继续用已验证的摩柿后端：`POST https://morax.kdns.fr/api/login`（取 session Cookie）→ `GET /api/bookshelf`（`items[].title/author/download_url/task_id]`）→ `GET download_url`（TXT）。QuickApp 用 HTTPS 请求即可，与虚空终端无关。
+- 继续用已验证的摩柿后端：`POST https://morax.sswwgzs.cn/api/login`（取 session Cookie）→ `GET /api/bookshelf`（`items[].title/author/download_url/task_id]`）→ `GET download_url`（TXT）。QuickApp 用 HTTPS 请求即可，与虚空终端无关。
 
 ### 6.2 如果还想在手环上加"虚空终端聊天"
 前提是 QuickApp(Vela) 能发起 **WSS + 原生 TCP/TLS**。分两种情况：
 
-1. **Vela 支持 WebSocket**：可直连。流程 = `POST /api/login` 拿 token → 连 `wss://buer.kdns.fr/ws`（不带 Origin 也放行）→ 发 `{"type":"auth","token":...,"lite":true}` → 收 `hello` 与 `global/dm/group` 推送 → 回 pong。注意：
+1. **Vela 支持 WebSocket**：可直连。流程 = `POST /api/login` 拿 token → 连 `wss://buer.sswwgzs.cn/ws`（不带 Origin 也放行）→ 发 `{"type":"auth","token":...,"lite":true}` → 收 `hello` 与 `global/dm/group` 推送 → 回 pong。注意：
    - 不要硬 pin TLS 指纹（Cloudflare 证书会轮换）；
    - 手环屏幕小、实时双向聊天体验差，建议只做"大厅最近消息只读 + 手动刷新"这类轻量展示，而不是完整 IM。
 2. **Vela 不支持裸 WebSocket**：做**手机端桥接**。在手机上跑一个Companion/本地代理，由它持有 WSS 长连与 auth，对外暴露简单 HTTP 轮询接口（如 `/latest` 返回最近 N 条大厅消息）给手环拉取。前提：手机 App 需要常驻运行、与手环同局域网/或走公网中转。
